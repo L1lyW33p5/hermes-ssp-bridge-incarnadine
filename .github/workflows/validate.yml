@@ -70,7 +70,11 @@ jobs:
             "scripts/auto_deploy.ps1",
             "scripts/start_bridge.vbs",
             "patches/hermes/kikka/SOUL.md",
-            "patches/taromati2/ghost/master/dic/system/event_response.dic"
+            "patches/taromati2/ghost/master/dic/system/event_response.dic",
+            "patches/taromati2/ghost/master/dic/communicate/talk/pseudoAI.dic",
+            "patches/taromati2/ghost/master/dic/system/FileDrop.dic",
+            "patches/taromati2/ghost/master/dic/other/Miniuse.dic",
+            "patches/taromati2/ghost/master/dic/other/kikkastock.dic"
           )
           foreach ($file in $required) {
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
@@ -81,7 +85,7 @@ jobs:
       - name: Check patch allowlist behavior
         shell: pwsh
         run: |
-          git check-ignore --quiet --no-index patches/taromati2/new_patch.dic
+          git check-ignore --quiet --no-index patches/taromati2/ghost/master/dic/system/new_patch.dic
           if ($LASTEXITCODE -eq 0) {
             throw "New Taromati2 patch files must not be ignored"
           }

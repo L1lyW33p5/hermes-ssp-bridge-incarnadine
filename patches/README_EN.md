@@ -9,7 +9,7 @@ This directory contains the small Taromati2/YAYA `.dic` files that were changed 
 
 It intentionally does not contain the full SSP installation, the full Taromati2 ghost, shell assets, profile state, logs, caches, or personal `aya_variable.cfg` values.
 
-Use the repository-root `自动部署脚本.bat` to apply these files after its Hermes and SSP/Taromati2 checks pass. Existing target files are backed up before replacement and every copied file is verified with SHA-256.
+Use the repository-root `自动部署脚本.bat` to apply these files after its Hermes and SSP/Taromati2 checks pass. If SSP is running, the script asks the user to exit it normally so YAYA cannot restore old dictionaries from `last_work_able_dic` while files are replaced one by one; SSP is then restarted in the normal user session after deployment. Existing target files are backed up before replacement and every copied file is verified with SHA-256.
 
 ## Included patch files
 
@@ -19,6 +19,10 @@ Use the repository-root `自动部署脚本.bat` to apply these files after its 
 - `ghost/master/dic/nurturance/nurturance.dic` — nurturance value protection used by bridge-controlled values.
 - `ghost/master/dic/system/clock.dic` — local event behavior adjusted for the bridge runtime.
 - `ghost/master/dic/system/menu.dic` — local menu/runtime integration touched by the bridge setup.
+- `ghost/master/dic/communicate/talk/pseudoAI.dic` — writes ghost dialogue to the Bridge TTS queue as UTF-8 and suppresses duplicate native `voice.vbs` playback.
+- `ghost/master/dic/system/FileDrop.dic` — forwards images dropped onto the ghost to the Bridge multimodal path.
+- `ghost/master/dic/other/Miniuse.dic` — coerces padding-helper inputs to strings to avoid numeric argument type errors.
+- `ghost/master/dic/other/kikkastock.dic` — closes files after reads to prevent handle leaks during long-running sessions.
 
 ## License
 

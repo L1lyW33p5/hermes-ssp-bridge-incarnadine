@@ -25,6 +25,7 @@ $script:HermesVersion = ''
 $script:BridgeTaskName = 'Hermes Bridge'
 $script:GatewayTaskName = 'Hermes_Gateway_kikka'
 $script:ControlTaskName = 'Hermes_SSP_Bridge_Control'
+$script:RestartSspAfterDeployment = $false
 
 function Wait-ForEnter {
     param([string]$Message = '按 Enter 键继续')
@@ -655,10 +656,63 @@ function Update-LocalConfiguration {
     Write-Host "已更新本机配置：$path"
 }
 
+function Get-TargetSspProcesses {
+    $sspExe = [IO.Path]::GetFullPath((Join-Path $script:SspRoot 'ssp.exe'))
+    return @(Get-CimInstance Win32_Process -Filter "Name = 'ssp.exe'" -ErrorAction SilentlyContinue | Where-Object {
+        -not [string]::IsNullOrWhiteSpace($_.ExecutablePath) -and
+        [IO.Path]::GetFullPath($_.ExecutablePath).Equals($sspExe, [StringComparison]::OrdinalIgnoreCase)
+    })
+}
+
+function Wait-ForSspExitBeforePatch {
+    if ((Get-TargetSspProcesses).Count -eq 0) {
+        return
+    }
+    $script:RestartSspAfterDeployment = $true
+    while ((Get-TargetSspProcesses).Count -gt 0) {
+        Write-Host ''
+        Write-Host '检测到 SSP 正在运行。运行中覆盖 YAYA 辞书可能触发 last_work_able_dic 回滚。' -ForegroundColor Yellow
+        Write-Host '请先从 SSP 菜单正常退出；脚本不会强制终止 SSP。'
+        $choice = Read-Host '退出 SSP 后按 Enter 重新检测，输入 0 取消部署'
+        if ($choice -eq '0') {
+            throw '用户取消：SSP 尚未退出。'
+        }
+    }
+    Write-Host 'SSP 已退出，可以安全部署 patch。' -ForegroundColor Green
+}
+
+function Restart-SspIfNeeded {
+    if (-not $script:RestartSspAfterDeployment -or (Get-TargetSspProcesses).Count -gt 0) {
+        return
+    }
+    $taskName = "Hermes_SSP_Restart_$PID"
+    try {
+        $sspExe = Join-Path $script:SspRoot 'ssp.exe'
+        $action = New-ScheduledTaskAction -Execute $sspExe -WorkingDirectory $script:SspRoot
+        $principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
+        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+        Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Settings $settings -Force | Out-Null
+        Start-ScheduledTask -TaskName $taskName
+        for ($attempt = 0; $attempt -lt 10 -and (Get-TargetSspProcesses).Count -eq 0; $attempt++) {
+            Start-Sleep -Milliseconds 500
+        }
+        if ((Get-TargetSspProcesses).Count -eq 0) {
+            throw '计划任务已启动，但 5 秒内未检测到 ssp.exe。'
+        }
+        Write-Host '已在普通用户会话中重新启动 SSP。' -ForegroundColor Green
+    } catch {
+        Write-Host "未能自动重新启动 SSP，请手动运行 ssp.exe：$($_.Exception.Message)" -ForegroundColor Yellow
+    } finally {
+        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+        $script:RestartSspAfterDeployment = $false
+    }
+}
+
 function Invoke-Deployment {
     Show-EnvironmentHeader
     Write-Host '开始部署 Hermes SSP Bridge……' -ForegroundColor Cyan
     try {
+        Wait-ForSspExitBeforePatch
         Update-LocalConfiguration
         Install-Dependencies
         Ensure-KikkaProfile
@@ -675,6 +729,8 @@ function Invoke-Deployment {
     } catch {
         Write-Host ''
         Write-Host "部署失败：$($_.Exception.Message)" -ForegroundColor Red
+    } finally {
+        Restart-SspIfNeeded
     }
     Wait-ForEnter
 }

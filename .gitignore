@@ -54,8 +54,8 @@
 !/patches/taromati2/**
 
 # Local-only docs and agent handoff files
-docs/
-AGENTS.md
+/docs/
+/AGENTS.md
 
 # Explicit private/generated categories, kept here for readability even though /* already ignores them
 .env
@@ -73,18 +73,18 @@ hermes_drop_queue.txt
 hermes_image_queue.txt
 hermes_nurturance_val.txt
 modern_input_close.signal
-bridge_workspace/
-patch-backups/
-temp/
-ghost/
-data/
-calendar/
-plugin/
-headline/
-balloon/
-ssp.exe
-ssp.dbg
-ssp.map
+/bridge_workspace/
+/patch-backups/
+/temp/
+/ghost/
+/data/
+/calendar/
+/plugin/
+/headline/
+/balloon/
+/ssp.exe
+/ssp.dbg
+/ssp.map
 USER*.md
 MEMORY*.md
 *key*.txt
