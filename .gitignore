@@ -1,0 +1,91 @@
+# hermes-ssp-bridge public tree allowlist
+# Keep the local SSP runtime directory intact, but keep Git focused on
+# public bridge source, control panel, deployment helpers, and curated patches.
+
+/*
+
+# Public root files
+!/.gitignore
+!/LICENSE.md
+!/DISCLAIMER.md
+!/THIRD_PARTY_NOTICES.md
+!/LICENSES/
+!/LICENSES/**
+!/README.md
+!/README_EN.md
+!/SECURITY.md
+!/bridge_wrapper.py
+!/hermes_bridge.py
+!/hermes_input_modern.py
+!/requirements.txt
+!/banner.png
+!/自动部署脚本.bat
+!/控制面板开关.bat
+
+# Public repository validation
+!/.github/
+/.github/*
+!/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/validate.yml
+
+# Local web control panel
+!/bridge_control/
+/bridge_control/*
+!/bridge_control/control_service.py
+
+# Helper scripts
+!/scripts/
+/scripts/*
+!/scripts/register_bridge_control_task.ps1
+!/scripts/start_bridge_control.vbs
+!/scripts/validate_control_service.py
+!/scripts/auto_deploy.ps1
+
+# Curated Hermes and Taromati2/YAYA deployment patches only
+!/patches/
+/patches/*
+!/patches/README.md
+!/patches/README_EN.md
+!/patches/hermes/
+!/patches/hermes/**
+!/patches/taromati2/
+!/patches/taromati2/**
+
+# Local-only docs and agent handoff files
+docs/
+AGENTS.md
+
+# Explicit private/generated categories, kept here for readability even though /* already ignores them
+.env
+.env.*
+__pycache__/
+*.py[cod]
+*.pyo
+*.log
+STACKTRC.TXT
+hermes_bridge.lock
+hermes_bridge.pid
+bridge_running.flag
+hermes_tts_queue.txt
+hermes_drop_queue.txt
+hermes_image_queue.txt
+hermes_nurturance_val.txt
+modern_input_close.signal
+bridge_workspace/
+patch-backups/
+temp/
+ghost/
+data/
+calendar/
+plugin/
+headline/
+balloon/
+ssp.exe
+ssp.dbg
+ssp.map
+USER*.md
+MEMORY*.md
+*key*.txt
+*.token
+*.pat

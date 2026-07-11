@@ -1,0 +1,87 @@
+name: Validate public tree
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-validation:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Parse Python sources
+        shell: pwsh
+        run: |
+          @'
+          import ast
+          from pathlib import Path
+
+          files = [
+              Path("hermes_bridge.py"),
+              Path("bridge_wrapper.py"),
+              Path("hermes_input_modern.py"),
+              Path("bridge_control/control_service.py"),
+              Path("scripts/validate_control_service.py"),
+          ]
+          for path in files:
+              ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+              print(f"OK {path}")
+          '@ | python -
+
+      - name: Parse PowerShell sources
+        shell: powershell
+        run: |
+          $files = @(
+            "scripts/auto_deploy.ps1",
+            "scripts/register_bridge_control_task.ps1"
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file), [ref]$tokens, [ref]$errors
+            )
+            if ($errors.Count) { throw ($errors | Out-String) }
+            Write-Host "OK $file"
+          }
+
+      - name: Validate control service defaults
+        run: python scripts/validate_control_service.py
+
+      - name: Check required public files
+        shell: pwsh
+        run: |
+          $required = @(
+            "README.md",
+            "README_EN.md",
+            "SECURITY.md",
+            "banner.png",
+            "requirements.txt",
+            "自动部署脚本.bat",
+            "控制面板开关.bat",
+            "scripts/auto_deploy.ps1",
+            "patches/hermes/kikka/SOUL.md",
+            "patches/taromati2/ghost/master/dic/system/event_response.dic"
+          )
+          foreach ($file in $required) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Missing required file: $file"
+            }
+          }
+
+      - name: Check patch allowlist behavior
+        shell: pwsh
+        run: |
+          git check-ignore --quiet --no-index patches/taromati2/new_patch.dic
+          if ($LASTEXITCODE -eq 0) {
+            throw "New Taromati2 patch files must not be ignored"
+          }
+          exit 0
