@@ -65,11 +65,16 @@ function Request-AutostartElevation {
     }
 
     Write-Host ''
-    Write-Host '该操作需要管理员权限。即将弹出 Windows UAC，请选择“是”。' -ForegroundColor Yellow
+    Write-Host '该操作需要管理员权限。即将弹出 Windows UAC，请选择“是”；确认后将在管理员 CMD 中继续。' -ForegroundColor Yellow
     try {
         $scriptPath = (Get-ElevationScriptPath).Replace('"', '""')
-        $arguments = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "{0}" -OpenAutostartMenu -AutostartChoice {1}' -f $scriptPath, $Choice
-        Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -Verb RunAs -ErrorAction Stop | Out-Null
+        $projectRoot = Split-Path -Parent (Split-Path -Parent $scriptPath)
+        $batchPath = (Join-Path $projectRoot '自动部署脚本.bat').Replace('"', '""')
+        if (-not (Test-Path -LiteralPath $batchPath -PathType Leaf)) {
+            throw "未找到 CMD 部署入口：$batchPath"
+        }
+        $arguments = '/d /c ""{0}" -OpenAutostartMenu -AutostartChoice {1}"' -f $batchPath, $Choice
+        Start-Process -FilePath $env:ComSpec -ArgumentList $arguments -Verb RunAs -ErrorAction Stop | Out-Null
         return $true
     } catch {
         Write-Host '未能获得管理员权限：UAC 已取消，或管理员启动失败。' -ForegroundColor Red
