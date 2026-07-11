@@ -929,7 +929,6 @@ if ($OpenAutostartMenu) {
         Wait-ForEnter
     }
     Show-AutostartMenu
-    exit 0
 }
 
 while ($true) {
