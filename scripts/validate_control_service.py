@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import http.client
 import json
@@ -13,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVICE = ROOT / "bridge_control" / "control_service.py"
+BRIDGE = ROOT / "hermes_bridge.py"
 
 
 def request(port: int, method: str, path: str, headers: dict[str, str], body: bytes = b""):
@@ -136,6 +138,34 @@ def validate_gateway_file_backup(module) -> None:
         module._gateway_status = original_status
 
 
+def validate_screen_collision_policy() -> None:
+    tree = ast.parse(BRIDGE.read_text(encoding="utf-8-sig"), filename=str(BRIDGE))
+    function = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == "_screen_collision_suppressed"
+        ),
+        None,
+    )
+    if function is None:
+        raise RuntimeError("Screen collision policy helper is missing")
+    namespace: dict[str, object] = {}
+    module_node = ast.Module(body=[function], type_ignores=[])
+    ast.fix_missing_locations(module_node)
+    exec(compile(module_node, str(BRIDGE), "exec"), namespace)
+    policy = namespace["_screen_collision_suppressed"]
+    if not callable(policy):
+        raise RuntimeError("Screen collision policy helper is not callable")
+    if policy(120.0, True) is not True:
+        raise RuntimeError("Screen collision must remain enabled while Talk is enabled")
+    if policy(120.0, False) is not False:
+        raise RuntimeError("Screen-only mode must bypass Talk collision coordination")
+    if policy(0.0, True) is not False:
+        raise RuntimeError("A fresh Screen cycle must not be suppressed")
+
+
 def main() -> int:
     spec = importlib.util.spec_from_file_location("bridge_control_service", SERVICE)
     if spec is None or spec.loader is None:
@@ -153,6 +183,8 @@ def main() -> int:
     report["gateway_lifecycle"] = "ok"
     validate_gateway_file_backup(module)
     report["gateway_file_backup"] = "ok"
+    validate_screen_collision_policy()
+    report["screen_collision_policy"] = "ok"
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
 

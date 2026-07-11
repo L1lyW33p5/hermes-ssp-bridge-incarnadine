@@ -165,6 +165,11 @@ _last_kikka_refresh = 0.0  # kikka wait 最后刷新时间戳（0=从未）
 WATCHER_CONTROL_FILE = SSP_HOME / "bridge_workspace" / "watcher_control.json"
 
 
+def _screen_collision_suppressed(last_screen_trigger: float, talk_enabled: bool) -> bool:
+    """Only coordinate Screen with Talk while the Talk watcher is enabled."""
+    return bool(talk_enabled and last_screen_trigger > 0)
+
+
 def _coerce_watcher_control(data):
     state = {}
     for key in ("talk", "screen"):
@@ -1155,16 +1160,21 @@ def screen_watcher_loop():
             continue
 
 
-        # Trigger screen capture — only first Screen in this loop sets timestamp
+        # Trigger screen capture. Collision coordination only applies while
+        # Talk is enabled; Screen-only mode must remain independently cyclic.
         global _last_screen_trigger
-        if _last_screen_trigger > 0:
+        talk_enabled = _user_talk_enabled.is_set()
+        if _screen_collision_suppressed(_last_screen_trigger, talk_enabled):
             # timestamp already set, block to prevent overwrite — Talk will consume it
             log("📸 Screen: collision suppressed (waiting for Talk delay-reset)")
             screen_timer = 0.0           # consume peak
             continue
+        if not talk_enabled:
+            _last_screen_trigger = 0.0
+            log("📸 Screen: standalone mode (Talk watcher disabled; collision gate bypassed)")
         log("📸 Screen triggered!")
         screen_timer = 0.0
-        _last_screen_trigger = time.time()
+        _last_screen_trigger = time.time() if talk_enabled else 0.0
 
 
         try:
