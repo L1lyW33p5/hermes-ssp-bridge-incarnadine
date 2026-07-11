@@ -95,16 +95,21 @@ def validate_gateway_lifecycle(module) -> None:
         module._wait_for_gateway_state = lambda expected, timeout=30.0: {"running": expected}
 
         module._gateway_status = lambda: {"running": False, "pid": None}
-        if module._start_gateway() != (True, "start ok"):
+        if module._start_gateway() != (True, "Gateway started."):
             raise RuntimeError("Gateway start did not use the official lifecycle command")
 
         module._gateway_status = lambda: {"running": True, "pid": 1234}
-        if module._stop_gateway() != (True, "stop ok"):
+        if module._stop_gateway() != (True, "Gateway stopped."):
             raise RuntimeError("Gateway stop did not use the official lifecycle command")
-        if module._restart_gateway() != (True, "restart ok"):
+        if module._restart_gateway() != (True, "Gateway restarted."):
             raise RuntimeError("Gateway restart did not use the official lifecycle command")
         if actions != ["start", "stop", "restart"]:
             raise RuntimeError(f"Unexpected gateway lifecycle calls: {actions}")
+        cleaned = module._without_gateway_pid(
+            "Gateway started via direct spawn (PID 1234) (PID: 1234)"
+        )
+        if "1234" in cleaned or "PID" in cleaned:
+            raise RuntimeError("Gateway PID was not removed from the user-facing message")
     finally:
         module._gateway_status = original_status
         module._run_gateway_cli = original_run

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import signal
 import socket
@@ -625,6 +626,11 @@ def _run_gateway_cli(action: str, timeout: float = 90.0) -> tuple[bool, str]:
         return False, f"Gateway {action} failed: {exc}"
 
 
+def _without_gateway_pid(message: str) -> str:
+    cleaned = re.sub(r"\s*\(PID:?\s*\d+\)", "", message or "").strip()
+    return re.sub(r"\s{2,}", " ", cleaned) or message
+
+
 def _wait_for_gateway_state(expected_running: bool, timeout: float = 30.0) -> dict[str, Any]:
     deadline = time.monotonic() + timeout
     latest = _gateway_status()
@@ -637,15 +643,14 @@ def _wait_for_gateway_state(expected_running: bool, timeout: float = 30.0) -> di
 def _start_gateway() -> tuple[bool, str]:
     status = _gateway_status()
     if status["running"]:
-        pid = f"PID {status['pid']}" if status.get("pid") else "health check ok"
-        return True, f"Gateway is already running ({pid})."
+        return True, "Gateway is already running."
     ok, message = _run_gateway_cli("start")
     if not ok:
         return False, message
     latest = _wait_for_gateway_state(True)
     if latest["running"]:
-        return True, message
-    return False, f"{message} Gateway did not become healthy within 30 seconds."
+        return True, "Gateway started."
+    return False, f"{_without_gateway_pid(message)} Gateway did not become healthy within 30 seconds."
 
 
 def _stop_gateway() -> tuple[bool, str]:
@@ -657,8 +662,8 @@ def _stop_gateway() -> tuple[bool, str]:
         return False, message
     latest = _wait_for_gateway_state(False)
     if not latest["running"]:
-        return True, message
-    return False, f"{message} Gateway is still healthy after 30 seconds."
+        return True, "Gateway stopped."
+    return False, f"{_without_gateway_pid(message)} Gateway is still healthy after 30 seconds."
 
 
 def _restart_gateway() -> tuple[bool, str]:
@@ -667,8 +672,8 @@ def _restart_gateway() -> tuple[bool, str]:
         return False, message
     latest = _wait_for_gateway_state(True)
     if latest["running"]:
-        return True, message
-    return False, f"{message} Gateway did not become healthy within 30 seconds."
+        return True, "Gateway restarted."
+    return False, f"{_without_gateway_pid(message)} Gateway did not become healthy within 30 seconds."
 
 
 def _gateway_file_meta(home: str) -> dict[str, Any]:
