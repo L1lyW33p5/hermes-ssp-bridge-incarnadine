@@ -60,7 +60,7 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 
 6. 自动生成或更新本机私有的 `.env` 路径配置，同时保留其中已有的其他配置。
 
-部署完成后可在同一菜单中重新部署、管理 Bridge/gateway/web 控制面板的登录自启动、进入 Hermes 官方模型向导配置 Provider 和模型（缺少 `config.yaml` 时由向导创建），或恢复脚本创建的 patch/runtime/SOUL 备份。
+部署完成后可在同一菜单中重新部署、管理 Bridge/gateway/web 控制面板的登录自启动、进入 Hermes 官方模型向导配置 Provider 和模型（缺少 `config.yaml` 时由向导创建），或恢复脚本创建的 patch/runtime/SOUL 备份。修改自启动任务需要管理员权限时，脚本会在执行前说明原因并弹出 Windows UAC，确认后在管理员窗口继续刚才选择的操作。
 
 ## Web 控制面板
 

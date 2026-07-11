@@ -1,6 +1,8 @@
 ﻿[CmdletBinding()]
 param(
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    [switch]$OpenAutostartMenu,
+    [ValidatePattern('^[123]?$')][string]$AutostartChoice = ''
 )
 
 Set-StrictMode -Version 2.0
@@ -29,6 +31,50 @@ $script:ControlTaskName = 'Hermes_SSP_Bridge_Control'
 function Wait-ForEnter {
     param([string]$Message = '按 Enter 键继续')
     [void](Read-Host $Message)
+}
+
+function Test-IsAdministrator {
+    try {
+        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    } catch {
+        return $false
+    }
+}
+
+function Get-ElevationScriptPath {
+    $path = [IO.Path]::GetFullPath($PSCommandPath)
+    try {
+        $root = [IO.Path]::GetPathRoot($path)
+        $driveName = $root.TrimEnd('\').TrimEnd(':')
+        $drive = Get-PSDrive -Name $driveName -PSProvider FileSystem -ErrorAction Stop
+        if (-not [string]::IsNullOrWhiteSpace($drive.DisplayRoot)) {
+            return Join-Path $drive.DisplayRoot $path.Substring($root.Length)
+        }
+    } catch {
+        # Local/fixed drives do not need conversion. Keep the original path.
+    }
+    return $path
+}
+
+function Request-AutostartElevation {
+    param([Parameter(Mandatory = $true)][ValidateSet('1', '2', '3')][string]$Choice)
+    if (Test-IsAdministrator) {
+        return $true
+    }
+
+    Write-Host ''
+    Write-Host '该操作需要管理员权限。即将弹出 Windows UAC，请选择“是”。' -ForegroundColor Yellow
+    try {
+        $scriptPath = (Get-ElevationScriptPath).Replace('"', '""')
+        $arguments = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "{0}" -OpenAutostartMenu -AutostartChoice {1}' -f $scriptPath, $Choice
+        Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -Verb RunAs -ErrorAction Stop | Out-Null
+        return $true
+    } catch {
+        Write-Host '未能获得管理员权限：UAC 已取消，或管理员启动失败。' -ForegroundColor Red
+        return $false
+    }
 }
 
 function Get-HermesEnvironmentValue {
@@ -677,6 +723,11 @@ function Register-ControlTask {
 }
 
 function Refresh-RegisteredAutostartTasks {
+    $hasManagedTask = (Test-TaskRegistered -TaskName $script:BridgeTaskName) -or (Test-TaskRegistered -TaskName $script:ControlTaskName)
+    if ($hasManagedTask -and -not (Test-IsAdministrator)) {
+        Write-Host '检测到已有 Bridge/Web 自启动任务，但当前没有管理员权限，已跳过任务刷新；可在“自启动管理”中通过 UAC 更新。' -ForegroundColor Yellow
+        return
+    }
     if (Test-TaskRegistered -TaskName $script:BridgeTaskName) {
         Register-BridgeTask
         Write-Host "已刷新隐藏启动任务：$($script:BridgeTaskName)"
@@ -723,6 +774,24 @@ function Get-GatewayRegistrationLabel {
     return '未注册'
 }
 
+function Invoke-AutostartChoice {
+    param([Parameter(Mandatory = $true)][ValidateSet('1', '2', '3')][string]$Choice)
+    switch ($Choice) {
+        '1' { Toggle-ScheduledTask -TaskName $script:BridgeTaskName -RegisterAction { Register-BridgeTask } }
+        '2' { Toggle-GatewayTask }
+        '3' { Toggle-ScheduledTask -TaskName $script:ControlTaskName -RegisterAction { Register-ControlTask } }
+    }
+}
+
+function Write-AutostartError {
+    param([Parameter(Mandatory = $true)][string]$Detail)
+    if ($Detail -match '(?i)access.*denied|unauthorized|拒绝访问|权限') {
+        Write-Host "自启动设置失败：权限不足（Access is denied）。详情：$Detail" -ForegroundColor Red
+    } else {
+        Write-Host "自启动设置失败：$Detail" -ForegroundColor Red
+    }
+}
+
 function Show-AutostartMenu {
     while ($true) {
         Clear-Host
@@ -732,15 +801,22 @@ function Show-AutostartMenu {
         Write-Host '[0] 返回主菜单'
         Write-Host ''
         $choice = Read-Host 'Select'
+        if ($choice -in @('1', '2', '3') -and -not (Test-IsAdministrator)) {
+            if (Request-AutostartElevation -Choice $choice) {
+                exit 0
+            }
+            Wait-ForEnter
+            continue
+        }
         try {
             switch ($choice) {
-                '1' { Toggle-ScheduledTask -TaskName $script:BridgeTaskName -RegisterAction { Register-BridgeTask }; Wait-ForEnter }
-                '2' { Toggle-GatewayTask; Wait-ForEnter }
-                '3' { Toggle-ScheduledTask -TaskName $script:ControlTaskName -RegisterAction { Register-ControlTask }; Wait-ForEnter }
+                '1' { Invoke-AutostartChoice -Choice $choice; Wait-ForEnter }
+                '2' { Invoke-AutostartChoice -Choice $choice; Wait-ForEnter }
+                '3' { Invoke-AutostartChoice -Choice $choice; Wait-ForEnter }
                 '0' { return }
             }
         } catch {
-            Write-Host "自启动设置失败：$($_.Exception.Message)" -ForegroundColor Red
+            Write-AutostartError -Detail $_.Exception.Message
             Wait-ForEnter
         }
     }
@@ -827,6 +903,27 @@ function Show-CheckOnlyReport {
 
 if ($CheckOnly) {
     Show-CheckOnlyReport
+    exit 0
+}
+
+if ($OpenAutostartMenu) {
+    Refresh-Environment
+    if (-not $script:HermesOk -or -not $script:SspOk) {
+        Write-Host '管理员窗口中的环境检测未通过，无法打开自启动管理。' -ForegroundColor Red
+        if (-not $script:HermesOk) { Write-Host $script:HermesMessage -ForegroundColor Yellow }
+        if (-not $script:SspOk) { Write-Host $script:SspMessage -ForegroundColor Yellow }
+        Wait-ForEnter
+        exit 1
+    }
+    if ($AutostartChoice) {
+        try {
+            Invoke-AutostartChoice -Choice $AutostartChoice
+        } catch {
+            Write-AutostartError -Detail $_.Exception.Message
+        }
+        Wait-ForEnter
+    }
+    Show-AutostartMenu
     exit 0
 }
 
