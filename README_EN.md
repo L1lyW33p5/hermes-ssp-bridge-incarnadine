@@ -60,7 +60,7 @@ Then run `自动部署脚本.bat` from the root. After the environment checks pa
 
 6. Creates or updates the private local `.env` path settings while preserving unrelated existing settings.
 
-After deployment, the same menu can redeploy, manage logon startup for the Bridge/gateway/web panel, open the official Hermes model wizard (which creates `config.yaml` when it is missing), or restore patch/runtime/SOUL backups created by the scripts. When changing a startup task requires administrator rights, the script explains why, opens Windows UAC before making changes, and continues the selected operation in the elevated window after approval.
+After deployment, the same menu can redeploy, manage logon startup for the Bridge/gateway/web panel, open the official Hermes model wizard (which creates `config.yaml` when it is missing), or restore patch/runtime/SOUL backups created by the scripts. Except for read-only `-CheckOnly` runs, the deployment entry requests Windows UAC at startup and runs the complete workflow in an elevated Command Prompt after approval.
 
 ## Web control panel
 

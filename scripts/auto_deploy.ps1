@@ -1,8 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [switch]$CheckOnly,
-    [switch]$OpenAutostartMenu,
-    [ValidatePattern('^[123]?$')][string]$AutostartChoice = ''
+    [switch]$CheckOnly
 )
 
 Set-StrictMode -Version 2.0
@@ -58,14 +56,13 @@ function Get-ElevationScriptPath {
     return $path
 }
 
-function Request-AutostartElevation {
-    param([Parameter(Mandatory = $true)][ValidateSet('1', '2', '3')][string]$Choice)
+function Request-ScriptElevation {
     if (Test-IsAdministrator) {
         return $true
     }
 
     Write-Host ''
-    Write-Host '该操作需要管理员权限。即将弹出 Windows UAC，请选择“是”；确认后将在管理员 CMD 中继续。' -ForegroundColor Yellow
+    Write-Host '自动部署需要管理员权限。即将弹出 Windows UAC，请选择“是”；确认后将在管理员 CMD 中重新运行完整脚本。' -ForegroundColor Yellow
     try {
         $scriptPath = (Get-ElevationScriptPath).Replace('"', '""')
         $projectRoot = Split-Path -Parent (Split-Path -Parent $scriptPath)
@@ -73,7 +70,7 @@ function Request-AutostartElevation {
         if (-not (Test-Path -LiteralPath $batchPath -PathType Leaf)) {
             throw "未找到 CMD 部署入口：$batchPath"
         }
-        $arguments = '/d /c ""{0}" -OpenAutostartMenu -AutostartChoice {1}"' -f $batchPath, $Choice
+        $arguments = '/d /c ""{0}""' -f $batchPath
         Start-Process -FilePath $env:ComSpec -ArgumentList $arguments -Verb RunAs -ErrorAction Stop | Out-Null
         return $true
     } catch {
@@ -728,11 +725,6 @@ function Register-ControlTask {
 }
 
 function Refresh-RegisteredAutostartTasks {
-    $hasManagedTask = (Test-TaskRegistered -TaskName $script:BridgeTaskName) -or (Test-TaskRegistered -TaskName $script:ControlTaskName)
-    if ($hasManagedTask -and -not (Test-IsAdministrator)) {
-        Write-Host '检测到已有 Bridge/Web 自启动任务，但当前没有管理员权限，已跳过任务刷新；可在“自启动管理”中通过 UAC 更新。' -ForegroundColor Yellow
-        return
-    }
     if (Test-TaskRegistered -TaskName $script:BridgeTaskName) {
         Register-BridgeTask
         Write-Host "已刷新隐藏启动任务：$($script:BridgeTaskName)"
@@ -806,13 +798,6 @@ function Show-AutostartMenu {
         Write-Host '[0] 返回主菜单'
         Write-Host ''
         $choice = Read-Host 'Select'
-        if ($choice -in @('1', '2', '3') -and -not (Test-IsAdministrator)) {
-            if (Request-AutostartElevation -Choice $choice) {
-                exit 0
-            }
-            Wait-ForEnter
-            continue
-        }
         try {
             switch ($choice) {
                 '1' { Invoke-AutostartChoice -Choice $choice; Wait-ForEnter }
@@ -906,29 +891,17 @@ function Show-CheckOnlyReport {
     } | ConvertTo-Json
 }
 
+if (-not $CheckOnly -and -not (Test-IsAdministrator)) {
+    if (Request-ScriptElevation) {
+        exit 0
+    }
+    Wait-ForEnter
+    exit 1
+}
+
 if ($CheckOnly) {
     Show-CheckOnlyReport
     exit 0
-}
-
-if ($OpenAutostartMenu) {
-    Refresh-Environment
-    if (-not $script:HermesOk -or -not $script:SspOk) {
-        Write-Host '管理员窗口中的环境检测未通过，无法打开自启动管理。' -ForegroundColor Red
-        if (-not $script:HermesOk) { Write-Host $script:HermesMessage -ForegroundColor Yellow }
-        if (-not $script:SspOk) { Write-Host $script:SspMessage -ForegroundColor Yellow }
-        Wait-ForEnter
-        exit 1
-    }
-    if ($AutostartChoice) {
-        try {
-            Invoke-AutostartChoice -Choice $AutostartChoice
-        } catch {
-            Write-AutostartError -Detail $_.Exception.Message
-        }
-        Wait-ForEnter
-    }
-    Show-AutostartMenu
 }
 
 while ($true) {
