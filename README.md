@@ -5,18 +5,18 @@
 
 ![](banner.png)
 
-此项目是一个面向 `Windows` 平台的桥接工具，专为 SSP (ukagaka/伺か) 的 ghost [Taromati2](https://github.com/Taromati2/Taromati2) 与本地 Hermes Agent 之间的通信而设计，并附带一个简易的 web 前端面板。
+此项目是一个桥接工具。面向 `Windows` 平台，专为 SSP (ukagaka/伺か) 的 ghost [Taromati2](https://github.com/Taromati2/Taromati2) 与本地 Hermes Agent 之间的通信而设计，并附带一个简易的 web 前端面板。
 
 籍此，通过用户与人格的交谈或交互，Kikka(橘花) 得益于 Hermes Agent 的运行框架，能对用户的输入进行回应、侧写用户画像并不断完善自身记忆，也可以使用其拥有的技能和工具完成用户的指令。
 
 为了使桥接及相关机制能正常运行，另外做了 ghost 侧的桥接适配修改，因而，启用桥接前需要安装[专用的集成补丁](#补丁与备份)。
 
-## 功能特性
+## 主要特性
 
 - 双击 Ctrl 唤起输入框，把文本发送给 Kikka 并得到回应。
-- 支持 TTS 生成与播放，使 ghost 的回复可以被听见；默认使用 Edge TTS 神经语音 `zh-CN-XiaoyiNeural`，并通过 Windows 内置 MCI 播放，无需额外安装 ffplay。
+- 支持 TTS 生成与播放，使 ghost 的回复可以被听见；默认使用 Edge TTS 神经语音 `zh-CN-XiaoyiNeural`。
 - 提供 Taromati2 / YAYA 集成补丁，用于接入 kikka 养成变量、持久气球和静默控制等能力。
-- 根据“橘花养成系统”的 7 个变量，Kikka 将在桥接启动后的特定期间内触发屏幕回应或主动谈话。屏幕回应会截取主显示器的一帧，并通过本地 Hermes Gateway 发送给用户配置的模型服务。
+- 根据“橘花养成系统”的 7 个变量，Kikka 将在桥接启动后的特定期间内触发屏幕回应或主动谈话。
 
 ## 快速开始（自动部署）
 
@@ -24,9 +24,10 @@
 
 - Windows 10/11 上已经安装原生版 Hermes Agent `0.18.x`；安装后请重新打开终端，使 `hermes.exe` 能被 PATH 检测到。脚本也会检查 Hermes 的默认安装位置及名为 `hermes` 的环境变量。
 - 待部署的 SSP 目录有效且人格 Taromati2 存在。
-- 部署期间可以访问 GitHub、PyPI/清华 TUNA、IP 地区检测服务以及用户配置的模型和 Edge TTS 服务。
 
 ### 开始部署
+
+确认环境准备妥当后，
 
 直接将本仓库下载并解压至你的 SSP 目录（`ssp.exe` 所在位置），或者：
 
@@ -60,7 +61,7 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 
 6. 自动生成或更新本机私有的 `.env` 路径配置，同时保留其中已有的其他配置。
 
-部署完成后可在同一菜单中重新部署、管理 Bridge/gateway/web 控制面板的登录自启动、进入 Hermes 官方模型向导配置 Provider 和模型（缺少 `config.yaml` 时由向导创建），或恢复脚本创建的 patch/runtime/SOUL 备份。修改自启动任务需要管理员权限时，脚本会在执行前说明原因并弹出 Windows UAC，确认后在管理员窗口继续刚才选择的操作。
+部署完成后可在同一菜单中重新部署、管理 Bridge/gateway/web 控制面板的登录自启动、进入 Hermes 官方模型向导配置 Provider 和模型（缺少 `config.yaml` 时由向导创建），或恢复脚本创建的 patch/runtime/SOUL 备份。
 
 ## Web 控制面板
 
@@ -72,7 +73,7 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 http://127.0.0.1:1313
 ```
 
-控制面板可查看 Bridge 与 gateway 状态，通过 Hermes 官方生命周期命令启动、停止或重启 gateway，查看日志，并编辑当前 gateway profile 的 `SOUL.md`、`MEMORY.md`、`USER.md` 与 `config.yaml`。保存已有文件前会在同目录自动创建带时间戳的 `.web-backup.*` 备份。服务只监听 `127.0.0.1`，会拒绝非本机 Host/Origin 请求；请勿通过端口转发或反向代理将其公开。
+控制面板可查看 Bridge 与 gateway 状态；通过 Hermes 官方生命周期命令管理 gateway 的运行并编辑相关配置。
 
 ## 补丁与备份
 

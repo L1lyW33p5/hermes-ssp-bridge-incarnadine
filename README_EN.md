@@ -5,18 +5,18 @@
 
 ![](banner.png)
 
-This project is a `Windows` bridge for communication between the SSP (ukagaka/伺か) ghost [Taromati2](https://github.com/Taromati2/Taromati2) and a local Hermes Agent. It also includes a simple web frontend panel.
+This project is a bridge. Built for `Windows`, it connects the SSP (ukagaka/伺か) ghost [Taromati2](https://github.com/Taromati2/Taromati2) with a local Hermes Agent and includes a simple web frontend panel.
 
 With this bridge, Kikka can use the Hermes Agent runtime to respond to user input through conversation and interaction, build a user profile, continuously improve her own memory, and use her available skills and tools to complete user requests.
 
 To ensure the Bridge and its related mechanisms can operate correctly, this project includes ghost-side integration changes. Install the [dedicated integration patches](#patches-and-backups) before enabling the Bridge.
 
-## Features
+## Key features
 
 - Open the input box with a double Ctrl press, send text to Kikka, and receive a reply.
-- Generate and play TTS so the ghost's replies can be heard. The default voice is the Edge TTS neural voice `zh-CN-XiaoyiNeural`; playback uses Windows MCI and does not require ffplay.
+- Generate and play TTS so the ghost's replies can be heard. The default voice is the Edge TTS neural voice `zh-CN-XiaoyiNeural`.
 - Provide Taromati2 / YAYA integration patches for kikka nurturance variables, persistent balloons, silence control, and related bridge features.
-- Based on the seven variables from the “Kikka nurturance system”, Kikka can trigger screen-reaction or active-talk events during specific periods after the bridge starts. A screen reaction captures one frame from the primary display and sends it through the local Hermes Gateway to the model service configured by the user.
+- Based on the seven variables from the “Kikka nurturance system”, Kikka can trigger screen-reaction or active-talk events during specific periods after the bridge starts.
 
 ## Quick start (automatic deployment)
 
@@ -24,9 +24,10 @@ To ensure the Bridge and its related mechanisms can operate correctly, this proj
 
 - Native Hermes Agent `0.18.x` is installed on Windows 10/11. Open a new terminal after installation so PATH can find `hermes.exe`; the script also checks the default Hermes install path and an environment variable named `hermes`.
 - The target SSP directory is valid and contains the Taromati2 ghost.
-- Deployment can reach GitHub, PyPI/Tsinghua TUNA, the IP-region lookup services, the configured model provider, and Edge TTS.
 
 ### Start deployment
+
+Once the environment is ready,
 
 Download this repository and extract it directly into your SSP directory (the directory containing `ssp.exe`), or:
 
@@ -60,7 +61,7 @@ Then run `自动部署脚本.bat` from the root. After the environment checks pa
 
 6. Creates or updates the private local `.env` path settings while preserving unrelated existing settings.
 
-After deployment, the same menu can redeploy, manage logon startup for the Bridge/gateway/web panel, open the official Hermes model wizard (which creates `config.yaml` when it is missing), or restore patch/runtime/SOUL backups created by the scripts. Except for read-only `-CheckOnly` runs, the deployment entry requests Windows UAC at startup and runs the complete workflow in an elevated Command Prompt after approval.
+After deployment, the same menu can redeploy, manage logon startup for the Bridge/gateway/web panel, open the official Hermes model wizard (which creates `config.yaml` when it is missing), or restore patch/runtime/SOUL backups created by the scripts.
 
 ## Web control panel
 
@@ -72,7 +73,7 @@ Once started, open:
 http://127.0.0.1:1313
 ```
 
-The panel can inspect the Bridge and gateway, use the official Hermes lifecycle commands to start, stop, or restart the gateway, show logs, and edit the active profile's `SOUL.md`, `MEMORY.md`, `USER.md`, and `config.yaml`. Before an existing file is overwritten, a timestamped `.web-backup.*` copy is created beside it. The service binds only to `127.0.0.1` and rejects non-local Host/Origin requests; do not expose it through port forwarding or a reverse proxy.
+The panel shows Bridge and gateway status, manages the gateway through the official Hermes lifecycle commands, and edits the related configuration.
 
 ## Patches and backups
 
