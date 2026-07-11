@@ -60,7 +60,7 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 
 6. 自动生成或更新本机私有的 `.env` 路径配置，同时保留其中已有的其他配置。
 
-部署完成后可在同一菜单中重新部署、管理 Bridge/gateway/web 控制面板的登录自启动、进入 Hermes 官方模型向导配置 Provider 和模型，或恢复脚本创建的 patch/runtime/SOUL 备份。
+部署完成后可在同一菜单中重新部署、管理 Bridge/gateway/web 控制面板的登录自启动、进入 Hermes 官方模型向导配置 Provider 和模型（缺少 `config.yaml` 时由向导创建），或恢复脚本创建的 patch/runtime/SOUL 备份。
 
 ## Web 控制面板
 
@@ -72,7 +72,7 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 http://127.0.0.1:1313
 ```
 
-控制面板可查看 Bridge 与 gateway 状态、启动或停止进程、查看日志，并编辑当前 gateway profile 的相关文件。服务只监听 `127.0.0.1`，会拒绝非本机 Host/Origin 请求；请勿通过端口转发或反向代理将其公开。
+控制面板可查看 Bridge 与 gateway 状态，通过 Hermes 官方生命周期命令启动、停止或重启 gateway，查看日志，并编辑当前 gateway profile 的 `SOUL.md`、`MEMORY.md`、`USER.md` 与 `config.yaml`。保存已有文件前会在同目录自动创建带时间戳的 `.web-backup.*` 备份。服务只监听 `127.0.0.1`，会拒绝非本机 Host/Origin 请求；请勿通过端口转发或反向代理将其公开。
 
 ## 补丁与备份
 

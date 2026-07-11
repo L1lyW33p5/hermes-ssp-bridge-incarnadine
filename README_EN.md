@@ -60,7 +60,7 @@ Then run `自动部署脚本.bat` from the root. After the environment checks pa
 
 6. Creates or updates the private local `.env` path settings while preserving unrelated existing settings.
 
-After deployment, the same menu can redeploy, manage logon startup for the Bridge/gateway/web panel, open the official Hermes model wizard, or restore patch/runtime/SOUL backups created by the scripts.
+After deployment, the same menu can redeploy, manage logon startup for the Bridge/gateway/web panel, open the official Hermes model wizard (which creates `config.yaml` when it is missing), or restore patch/runtime/SOUL backups created by the scripts.
 
 ## Web control panel
 
@@ -72,7 +72,7 @@ Once started, open:
 http://127.0.0.1:1313
 ```
 
-The panel can inspect and start/stop the Bridge and gateway, show logs, and edit files associated with the active gateway profile. It binds only to `127.0.0.1` and rejects non-local Host/Origin requests; do not expose it through port forwarding or a reverse proxy.
+The panel can inspect the Bridge and gateway, use the official Hermes lifecycle commands to start, stop, or restart the gateway, show logs, and edit the active profile's `SOUL.md`, `MEMORY.md`, `USER.md`, and `config.yaml`. Before an existing file is overwritten, a timestamped `.web-backup.*` copy is created beside it. The service binds only to `127.0.0.1` and rejects non-local Host/Origin requests; do not expose it through port forwarding or a reverse proxy.
 
 ## Patches and backups
 

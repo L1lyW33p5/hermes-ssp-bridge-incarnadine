@@ -618,6 +618,7 @@ function Invoke-Deployment {
         Install-KikkaGateway
         Wait-KikkaGatewayHealthy
         Install-TaromatiPatches
+        Refresh-RegisteredAutostartTasks
         if (-not (Test-DeploymentComplete)) {
             throw '部署结束后的 profile/patch 哈希校验未通过。'
         }
@@ -662,17 +663,28 @@ function New-LogonTaskSettings {
 }
 
 function Register-BridgeTask {
-    $scriptPath = Join-Path $script:ProjectRoot 'bridge_wrapper.py'
-    $action = New-ScheduledTaskAction -Execute $script:PythonWExe -Argument ('"{0}"' -f $scriptPath) -WorkingDirectory $script:ProjectRoot
+    $launcher = Join-Path $script:ProjectRoot 'scripts\start_bridge.vbs'
+    $action = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument ('//B //Nologo "{0}"' -f $launcher) -WorkingDirectory $script:ProjectRoot
     $trigger = New-ScheduledTaskTrigger -AtLogOn
     Register-ScheduledTask -TaskName $script:BridgeTaskName -Action $action -Trigger $trigger -Settings (New-LogonTaskSettings) -Description 'Hermes SSP Bridge (kikka)' -Force | Out-Null
 }
 
 function Register-ControlTask {
-    $scriptPath = Join-Path $script:ProjectRoot 'bridge_control\control_service.py'
-    $action = New-ScheduledTaskAction -Execute $script:PythonWExe -Argument ('"{0}"' -f $scriptPath) -WorkingDirectory $script:ProjectRoot
+    $launcher = Join-Path $script:ProjectRoot 'scripts\start_bridge_control.vbs'
+    $action = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument ('//B //Nologo "{0}"' -f $launcher) -WorkingDirectory $script:ProjectRoot
     $trigger = New-ScheduledTaskTrigger -AtLogOn
     Register-ScheduledTask -TaskName $script:ControlTaskName -Action $action -Trigger $trigger -Settings (New-LogonTaskSettings) -Description 'Hermes SSP Bridge web control panel' -Force | Out-Null
+}
+
+function Refresh-RegisteredAutostartTasks {
+    if (Test-TaskRegistered -TaskName $script:BridgeTaskName) {
+        Register-BridgeTask
+        Write-Host "已刷新隐藏启动任务：$($script:BridgeTaskName)"
+    }
+    if (Test-TaskRegistered -TaskName $script:ControlTaskName) {
+        Register-ControlTask
+        Write-Host "已刷新隐藏启动任务：$($script:ControlTaskName)"
+    }
 }
 
 function Toggle-ScheduledTask {
@@ -762,18 +774,19 @@ function Get-CurrentModelSummary {
 function Show-ModelConfiguration {
     Clear-Host
     $config = Join-Path $script:ProfileDir 'config.yaml'
-    if (-not (Test-Path -LiteralPath $config -PathType Leaf)) {
-        Write-Host "未找到 kikka 配置文件：$config" -ForegroundColor Red
-        Wait-ForEnter
-        return
+    $configExists = Test-Path -LiteralPath $config -PathType Leaf
+    if ($configExists) {
+        $current = Get-CurrentModelSummary
+        Write-Host 'kikka gateway 当前模型配置：'
+        Write-Host "  Provider：$(if ($current.Provider) { $current.Provider } else { '未设置' })"
+        Write-Host "  Model：$(if ($current.Model) { $current.Model } else { '未设置' })"
+        Write-Host "  配置文件：$config"
+        $answer = Read-Host '当前已有配置，是否需要修改？(y/n)'
+    } else {
+        Write-Host 'kikka gateway 尚未生成 config.yaml。' -ForegroundColor Yellow
+        Write-Host "  将由 Hermes 官方模型向导创建：$config"
+        $answer = Read-Host '是否现在创建并配置？(y/n)'
     }
-
-    $current = Get-CurrentModelSummary
-    Write-Host 'kikka gateway 当前模型配置：'
-    Write-Host "  Provider：$(if ($current.Provider) { $current.Provider } else { '未设置' })"
-    Write-Host "  Model：$(if ($current.Model) { $current.Model } else { '未设置' })"
-    Write-Host "  配置文件：$config"
-    $answer = Read-Host '当前已有配置，是否需要修改？(y/n)'
     if ($answer -notmatch '^(?i)y$') {
         return
     }
@@ -786,7 +799,7 @@ function Show-ModelConfiguration {
         Wait-ForEnter
         return
     }
-    if (Test-GatewayAutostartRegistered) {
+    if ((Test-GatewayAutostartRegistered) -or (Test-KikkaGatewayHealthy)) {
         Write-Host '正在重启 kikka gateway 以应用新配置……'
         & $script:HermesExe --profile kikka gateway restart
         if ($LASTEXITCODE -eq 0) {

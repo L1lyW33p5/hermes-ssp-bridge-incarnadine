@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $Launcher = Join-Path $Root "scripts\start_bridge_control.vbs"
 
-$Action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$Launcher`""
+$Action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "//B //Nologo `"$Launcher`""
 $Trigger = New-ScheduledTaskTrigger -AtLogon
 $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
 

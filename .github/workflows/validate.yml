@@ -68,6 +68,7 @@ jobs:
             "自动部署脚本.bat",
             "控制面板开关.bat",
             "scripts/auto_deploy.ps1",
+            "scripts/start_bridge.vbs",
             "patches/hermes/kikka/SOUL.md",
             "patches/taromati2/ghost/master/dic/system/event_response.dic"
           )

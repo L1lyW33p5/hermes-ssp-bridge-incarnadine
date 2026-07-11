@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import signal
 import socket
 import subprocess
@@ -33,7 +34,6 @@ WORKSPACE = ROOT / "bridge_workspace"
 DOTENV = ROOT / ".env"
 SERVICE_LOG = WORKSPACE / "control_service.log"
 BRIDGE_CHILD_STDERR = WORKSPACE / "bridge_child_stderr.log"
-GATEWAY_CHILD_STDERR = WORKSPACE / "gateway_child_stderr.log"
 WATCHER_CONTROL_FILE = WORKSPACE / "watcher_control.json"
 CONTROL_PID_FILE = WORKSPACE / "control_service.pid"
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -60,8 +60,6 @@ _process: subprocess.Popen[str] | None = None
 _process_lock = threading.Lock()
 _last_bridge_exit: dict[str, Any] | None = None
 _expected_stop_pids: set[int] = set()
-_gateway_process: subprocess.Popen[str] | None = None
-_gateway_process_lock = threading.Lock()
 _theme_lock = threading.Lock()
 _theme_state: dict[str, Any] = {
     "dark": False,
@@ -443,11 +441,12 @@ def _set_watcher_control(data: dict[str, Any]) -> dict[str, Any]:
         return {"ok": False, **state, "path": str(WATCHER_CONTROL_FILE), "message": str(exc)}
 
 
-GATEWAY_PROFILE_FILES = ["soul.md", "memory.md", "user.md"]
+GATEWAY_PROFILE_FILES = ["soul.md", "memory.md", "user.md", "config.yaml"]
 GATEWAY_PROFILE_FILE_PATHS = {
     "soul.md": Path("soul.md"),
     "memory.md": Path("memories") / "MEMORY.md",
     "user.md": Path("memories") / "USER.md",
+    "config.yaml": Path("config.yaml"),
 }
 
 
@@ -561,22 +560,6 @@ def _gateway_status() -> dict[str, Any]:
     if selected is None and candidates:
         selected = candidates[0]
 
-    with _gateway_process_lock:
-        proc = _gateway_process
-        service_pid = proc.pid if proc is not None and proc.poll() is None else None
-
-    if selected is None and service_pid:
-        selected = {
-            "pid": service_pid,
-            "name": "",
-            "create_time": None,
-            "cmdline": [],
-            "profile": cfg["gateway_profile"],
-            "home": str(cfg["gateway_home"] or ""),
-            "listening": [],
-            "matches_port": bool(health["ok"]),
-        }
-
     profile = (selected or {}).get("profile") or cfg["gateway_profile"]
     home = (selected or {}).get("home") or (str(cfg["gateway_home"]) if cfg["gateway_home"] else "")
     running = bool(health["ok"] or (selected and selected.get("matches_port")))
@@ -598,13 +581,8 @@ def _gateway_status() -> dict[str, Any]:
     }
 
 
-def _start_gateway() -> tuple[bool, str]:
+def _run_gateway_cli(action: str, timeout: float = 90.0) -> tuple[bool, str]:
     cfg = config()
-    status = _gateway_status()
-    if status["running"]:
-        pid = f"PID {status['pid']}" if status.get("pid") else "health check ok"
-        return True, f"Gateway is already running ({pid})."
-
     cmd = [
         str(cfg["gateway_python"]),
         "-m",
@@ -612,60 +590,85 @@ def _start_gateway() -> tuple[bool, str]:
         "--profile",
         str(cfg["gateway_profile"]),
         "gateway",
-        "run",
-        "--replace",
+        action,
     ]
     env = os.environ.copy()
     env.setdefault("PYTHONIOENCODING", "utf-8")
-    stderr_handle = None
     try:
-        WORKSPACE.mkdir(parents=True, exist_ok=True)
-        stderr_handle = GATEWAY_CHILD_STDERR.open("a", encoding="utf-8")
-        stderr_handle.write(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] start: {' '.join(cmd)}\n")
-        stderr_handle.flush()
-        proc = subprocess.Popen(
+        completed = subprocess.run(
             cmd,
             cwd=str(cfg["root"]),
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=stderr_handle,
+            capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             env=env,
             creationflags=CREATE_NO_WINDOW,
+            timeout=timeout,
+            check=False,
         )
-        with _gateway_process_lock:
-            global _gateway_process
-            _gateway_process = proc
-        _service_log(f"gateway start requested: pid={proc.pid}")
-        return True, f"Gateway start requested (PID {proc.pid})."
+        output = (completed.stdout or completed.stderr or "").strip()
+        _service_log(
+            f"gateway {action}: exit={completed.returncode}"
+            + (f" output={output}" if output else "")
+        )
+        if completed.returncode == 0:
+            return True, output or f"Gateway {action} completed."
+        return False, output or f"Gateway {action} failed (exit code {completed.returncode})."
+    except subprocess.TimeoutExpired:
+        message = f"Gateway {action} timed out after {int(timeout)} seconds."
+        _service_log(message)
+        return False, message
     except Exception as exc:
-        _service_log(f"gateway start failed: {exc}")
-        return False, f"Gateway start failed: {exc}"
-    finally:
-        if stderr_handle is not None:
-            try:
-                stderr_handle.close()
-            except Exception:
-                pass
+        _service_log(f"gateway {action} failed: {exc}")
+        return False, f"Gateway {action} failed: {exc}"
+
+
+def _wait_for_gateway_state(expected_running: bool, timeout: float = 30.0) -> dict[str, Any]:
+    deadline = time.monotonic() + timeout
+    latest = _gateway_status()
+    while bool(latest["running"]) != expected_running and time.monotonic() < deadline:
+        time.sleep(0.5)
+        latest = _gateway_status()
+    return latest
+
+
+def _start_gateway() -> tuple[bool, str]:
+    status = _gateway_status()
+    if status["running"]:
+        pid = f"PID {status['pid']}" if status.get("pid") else "health check ok"
+        return True, f"Gateway is already running ({pid})."
+    ok, message = _run_gateway_cli("start")
+    if not ok:
+        return False, message
+    latest = _wait_for_gateway_state(True)
+    if latest["running"]:
+        return True, message
+    return False, f"{message} Gateway did not become healthy within 30 seconds."
 
 
 def _stop_gateway() -> tuple[bool, str]:
     status = _gateway_status()
-    pid = status.get("pid")
-    if not status["running"] or not pid:
+    if not status["running"]:
         return True, "Gateway is not running."
-    cmdline = str(status.get("cmdline") or "").lower()
-    if "gateway" not in cmdline or "hermes" not in cmdline:
-        return False, "Refusing to stop a process that does not look like Hermes Gateway."
-    ok, message = _stop_pid(int(pid))
-    if ok:
-        _service_log(f"gateway stop requested: pid={pid}")
-        with _gateway_process_lock:
-            global _gateway_process
-            if _gateway_process is not None and _gateway_process.pid == int(pid):
-                _gateway_process = None
-        return True, f"Gateway stop requested (PID {pid})."
-    return False, message.replace("Bridge", "Gateway")
+    ok, message = _run_gateway_cli("stop")
+    if not ok:
+        return False, message
+    latest = _wait_for_gateway_state(False)
+    if not latest["running"]:
+        return True, message
+    return False, f"{message} Gateway is still healthy after 30 seconds."
+
+
+def _restart_gateway() -> tuple[bool, str]:
+    ok, message = _run_gateway_cli("restart")
+    if not ok:
+        return False, message
+    latest = _wait_for_gateway_state(True)
+    if latest["running"]:
+        return True, message
+    return False, f"{message} Gateway did not become healthy within 30 seconds."
 
 
 def _gateway_file_meta(home: str) -> dict[str, Any]:
@@ -730,9 +733,20 @@ def _save_gateway_files(files: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("Gateway HERMES_HOME not detected.")
         for name, text in files.items():
             path = _resolve_gateway_file(home, name)
+            new_text = str(text)
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(str(text), encoding="utf-8", newline="\n")
-            saved[name] = {"ok": True, "path": str(path), "size": path.stat().st_size}
+            backup = None
+            if path.exists() and path.read_text(encoding="utf-8", errors="replace") != new_text:
+                timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+                backup = path.with_name(f"{path.name}.web-backup.{timestamp}")
+                shutil.copy2(path, backup)
+            path.write_text(new_text, encoding="utf-8", newline="\n")
+            saved[name] = {
+                "ok": True,
+                "path": str(path),
+                "size": path.stat().st_size,
+                "backup": str(backup) if backup else "",
+            }
         return {"ok": True, "message": "Gateway profile files saved.", "gateway": _gateway_status(), "saved": saved}
     except Exception as exc:
         return {"ok": False, "message": str(exc), "gateway": status, "saved": saved}
@@ -1689,6 +1703,7 @@ INDEX_HTML = r"""<!doctype html>
             <div class="control-info">
               <span class="message" id="gatewayMessage"></span>
               <span class="subtle status-meta" id="gatewayPidText"></span>
+              <button class="secondary" id="gatewayRestartBtn" type="button">Restart</button>
             </div>
         </section>
         <section class="panel gateway-panel">
@@ -1696,6 +1711,7 @@ INDEX_HTML = r"""<!doctype html>
             <button class="secondary active" type="button" data-file="soul.md">soul.md</button>
             <button class="secondary" type="button" data-file="memory.md">MEMORY.md</button>
             <button class="secondary" type="button" data-file="user.md">USER.md</button>
+            <button class="secondary" type="button" data-file="config.yaml">config.yaml</button>
           </div>
           <textarea class="gateway-editor" id="gatewayEditor" spellcheck="false" disabled></textarea>
           <div class="gateway-actions">
@@ -1756,6 +1772,7 @@ INDEX_HTML = r"""<!doctype html>
     const gatewayToggle = document.getElementById("gatewayToggle");
     const gatewayStatusText = document.getElementById("gatewayStatusText");
     const gatewayPidText = document.getElementById("gatewayPidText");
+    const gatewayRestartBtn = document.getElementById("gatewayRestartBtn");
     const gatewayMessage = document.getElementById("gatewayMessage");
     const gatewayTitleProfile = document.getElementById("gatewayTitleProfile");
     const gatewayTabs = document.getElementById("gatewayTabs");
@@ -1774,7 +1791,7 @@ INDEX_HTML = r"""<!doctype html>
     let loadingDone = false;
     const loadingTimeout = window.setTimeout(finishLoading, 30000);
     const bridgeActionCooldownMs = 1200;
-    const gatewayActionTimeoutMs = 8000;
+    const gatewayActionTimeoutMs = 35000;
     const gatewayActionPollMs = 500;
     const logAutoScrollThreshold = 24;
     const kikkaKeys = ["Moeness", "Darkness", "Dependency", "Closeness", "Happiness", "kikkamood", "intimacy"];
@@ -1956,6 +1973,7 @@ INDEX_HTML = r"""<!doctype html>
     function setGatewayBusy(value) {
       gatewayBusy = value;
       gatewayToggle.disabled = value;
+      gatewayRestartBtn.disabled = value || !currentGatewayRunning();
       gatewayStatusSwitch.classList.toggle("disabled", value);
       reloadGatewayFilesBtn.disabled = value;
       saveGatewayFilesBtn.disabled = value;
@@ -1970,14 +1988,15 @@ INDEX_HTML = r"""<!doctype html>
       gatewayToggle.checked = displayRunning;
       gatewayPidText.textContent = running && gateway.pid ? `PID ${gateway.pid} (${gateway.source})` : "";
       gatewayTitleProfile.textContent = (gateway && gateway.profile) || "--";
-      gatewayEditor.disabled = !running || !gatewayFilesHome;
+      gatewayEditor.disabled = !gatewayFilesHome;
       if (!gatewayBusy) {
         gatewayToggle.disabled = false;
+        gatewayRestartBtn.disabled = !running;
         gatewayStatusSwitch.classList.remove("disabled");
         reloadGatewayFilesBtn.disabled = false;
         saveGatewayFilesBtn.disabled = false;
       }
-      if (running && gateway.home && gateway.home !== gatewayFilesHome && !gatewayEditorDirty) {
+      if (gateway.home && gateway.home !== gatewayFilesHome && !gatewayEditorDirty) {
         loadGatewayFiles(false);
       }
     }
@@ -2086,7 +2105,7 @@ INDEX_HTML = r"""<!doctype html>
       }
       setGatewayBusy(true);
       gatewayMessage.textContent = "";
-      const targetRunning = path.endsWith("/start");
+      const targetRunning = !path.endsWith("/stop");
       let waitForTarget = false;
       try {
         const response = await fetch(path, { method: "POST" });
@@ -2095,12 +2114,6 @@ INDEX_HTML = r"""<!doctype html>
         if (response.ok && data.ok !== false) {
           waitForTarget = true;
           renderGatewayPending(targetRunning);
-        }
-        if (path.endsWith("/stop")) {
-          gatewayFilesHome = "";
-          gatewayFiles = {};
-          gatewayEditorDirty = false;
-          renderGatewayEditor();
         }
       } catch (error) {
         gatewayMessage.textContent = String(error);
@@ -2412,6 +2425,7 @@ INDEX_HTML = r"""<!doctype html>
     gatewayToggle.addEventListener("change", () => {
       gatewayAction(gatewayToggle.checked ? "/api/gateway/start" : "/api/gateway/stop");
     });
+    gatewayRestartBtn.addEventListener("click", () => gatewayAction("/api/gateway/restart"));
     gatewayTabs.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-file]");
       if (!button) {
@@ -2586,6 +2600,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": ok, "message": message}, HTTPStatus.OK if ok else HTTPStatus.BAD_REQUEST)
         elif path == "/api/gateway/stop":
             ok, message = _stop_gateway()
+            self._send_json({"ok": ok, "message": message}, HTTPStatus.OK if ok else HTTPStatus.BAD_REQUEST)
+        elif path == "/api/gateway/restart":
+            ok, message = _restart_gateway()
             self._send_json({"ok": ok, "message": message}, HTTPStatus.OK if ok else HTTPStatus.BAD_REQUEST)
         elif path == "/api/gateway/files":
             data = self._read_json()

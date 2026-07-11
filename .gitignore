@@ -38,6 +38,7 @@
 !/scripts/
 /scripts/*
 !/scripts/register_bridge_control_task.ps1
+!/scripts/start_bridge.vbs
 !/scripts/start_bridge_control.vbs
 !/scripts/validate_control_service.py
 !/scripts/auto_deploy.ps1
