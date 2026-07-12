@@ -20,14 +20,11 @@ sublicensing, while prohibiting commercial use of the upstream project's
 modified portions. Portions created by other authors remain subject to their
 respective permissions.
 
-上游条款允许以非盈利目的处置副本，包括使用、复制、修改、衍生利用、散布、
-发布和再许可，同时禁止将上游项目修改部分用于商业用途。属于其他作者的部分仍
-适用各自的许可。
+上游条款允许以非盈利目的处置副本，包括使用、复制、修改、衍生利用、散布、发布和再许可，同时禁止将上游项目修改部分用于商业用途。属于其他作者的部分仍适用各自的许可。
 
 No commercial permission is granted by this repository. Anyone seeking
 commercial use must obtain separate permission from every applicable rights
 holder. If this notice conflicts with an upstream or third-party term, that
 upstream or third-party term controls.
 
-本仓库不授予商业使用许可。任何商业使用均须另行取得所有相关权利人的许可。
-若本说明与上游或第三方条款冲突，以对应的上游或第三方条款为准。
+本仓库不授予商业使用许可。任何商业使用均须另行取得所有相关权利人的许可。若本说明与上游或第三方条款冲突，以对应的上游或第三方条款为准。

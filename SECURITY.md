@@ -2,16 +2,11 @@
 
 ## 中文
 
-本项目仅面向受信任的本机 Windows 用户。Web 控制面板固定监听
-`127.0.0.1`，并拒绝非本机 `Host`/`Origin` 请求；请勿通过端口转发、反向代理
-或修改监听地址将其暴露到局域网或互联网。
+本项目仅面向受信任的本机 Windows 用户。Web 控制面板固定监听 `127.0.0.1`，并拒绝非本机 `Host`/`Origin` 请求；请勿通过端口转发、反向代理或修改监听地址将其暴露到局域网或互联网。
 
-如果发现安全问题，请优先使用 GitHub 仓库的 **Private vulnerability reporting**
-功能联系维护者。请勿在公开 Issue 中粘贴 API key、`.env`、Hermes profile、
-`SOUL.md`、`MEMORY.md`、`USER.md`、日志或截图。
+如果发现安全问题，请优先使用 GitHub 仓库的 **Private vulnerability reporting** 功能联系维护者。请勿在公开 Issue 中粘贴 API key、`.env`、Hermes profile、`SOUL.md`、`MEMORY.md`、`USER.md`、日志或截图。
 
-报告中请包含受影响版本、复现步骤、预期影响以及已验证的缓解方法。不要测试或
-访问不属于你的机器、账号或数据。
+报告中请包含受影响版本、复现步骤、预期影响以及已验证的缓解方法。不要测试或访问不属于你的机器、账号或数据。
 
 本项目当前以 Hermes Agent `0.18.x` 的原生 Windows 安装作为验证基线。
 

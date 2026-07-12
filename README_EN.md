@@ -73,7 +73,7 @@ Once started, open:
 http://127.0.0.1:1313
 ```
 
-The panel shows Bridge and gateway status, manages the gateway through the official Hermes lifecycle commands, and edits the related configuration.
+The panel shows Bridge and gateway status, manages the gateway through the official Hermes lifecycle commands, and edits the related profile files.
 
 ## Patches and backups
 

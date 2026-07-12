@@ -17,7 +17,8 @@ echo [1] Start service    [2] Stop service
 echo [0] Exit
 echo.
 set "CHOICE="
-set /p "CHOICE=Select: " || exit /b 0
+set /p "CHOICE=Select: "
+if not defined CHOICE goto menu
 
 if "%CHOICE%"=="1" goto start_service
 if "%CHOICE%"=="2" goto stop_service

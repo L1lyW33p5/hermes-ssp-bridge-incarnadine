@@ -7,7 +7,7 @@
 
 此项目是一个桥接工具。面向 `Windows` 平台，专为 SSP (ukagaka/伺か) 的 ghost [Taromati2](https://github.com/Taromati2/Taromati2) 与本地 Hermes Agent 之间的通信而设计，并附带一个简易的 web 前端面板。
 
-籍此，通过用户与人格的交谈或交互，Kikka(橘花) 得益于 Hermes Agent 的运行框架，能对用户的输入进行回应、侧写用户画像并不断完善自身记忆，也可以使用其拥有的技能和工具完成用户的指令。
+藉此，通过用户与人格的交谈或交互，Kikka(橘花) 得益于 Hermes Agent 的运行框架，能对用户的输入进行回应、侧写用户画像并不断完善自身记忆，也可以使用其拥有的技能和工具完成用户的指令。
 
 为了使桥接及相关机制能正常运行，另外做了 ghost 侧的桥接适配修改，因而，启用桥接前需要安装[专用的集成补丁](#补丁与备份)。
 
@@ -73,7 +73,7 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 http://127.0.0.1:1313
 ```
 
-控制面板可查看 Bridge 与 gateway 状态；通过 Hermes 官方生命周期命令管理 gateway 的运行并编辑相关配置。
+控制面板可查看 Bridge 与 gateway 状态；通过 Hermes 官方生命周期命令管理 gateway 的运行并编辑相关档案配置。
 
 ## 补丁与备份
 
@@ -108,11 +108,8 @@ http://127.0.0.1:1313
 
 ## 许可与免责声明
 
-本仓库采用混合许可：本仓库提供的 Bridge、控制面板和部署脚本采用 MIT License；
-`patches/taromati2/**`、Kikka `SOUL.md` 与 `banner.png` 不属于 MIT 授权范围，
-继续适用 Taromati2 上游非商业条款及其他权利人的许可。
+本仓库采用混合许可：本仓库提供的 Bridge、控制面板和部署脚本采用 MIT License；`patches/taromati2/**`、Kikka `SOUL.md` 与 `banner.png` 不属于 MIT 授权范围，继续适用 Taromati2 上游非商业条款及其他权利人的许可。
 
 现代输入框使用另行安装的 PySide6；PySide6 继续适用 Qt for Python 的 LGPLv3、GPLv3 或商业许可，本仓库不再分发其二进制文件。
 
-完整范围与条款见 [LICENSE.md](LICENSE.md)、[第三方声明](THIRD_PARTY_NOTICES.md)
-和[项目免责声明](DISCLAIMER.md)。
+完整范围与条款见 [LICENSE.md](LICENSE.md)、[第三方声明](THIRD_PARTY_NOTICES.md) 和[项目免责声明](DISCLAIMER.md)。

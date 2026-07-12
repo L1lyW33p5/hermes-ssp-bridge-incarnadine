@@ -296,7 +296,7 @@ function Test-DeploymentComplete {
     if ([string]::IsNullOrWhiteSpace($apiKey) -or $apiKey.Length -lt 32) {
         return $false
     }
-    $files = Get-PatchFiles
+    $files = @(Get-PatchFiles)
     if ($files.Count -eq 0) {
         return $false
     }
@@ -480,7 +480,7 @@ function Wait-KikkaGatewayHealthy {
 }
 
 function Install-TaromatiPatches {
-    $files = Get-PatchFiles
+    $files = @(Get-PatchFiles)
     if ($files.Count -eq 0) {
         throw 'patches\taromati2 中没有可部署文件。'
     }
@@ -618,7 +618,10 @@ function Show-RestoreMenu {
 
 function Set-DotEnvValue {
     param(
-        [Parameter(Mandatory = $true)][System.Collections.Generic.List[string]]$Lines,
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [AllowEmptyString()]
+        [System.Collections.Generic.List[string]]$Lines,
         [Parameter(Mandatory = $true)][string]$Key,
         [Parameter(Mandatory = $true)][string]$Value
     )
@@ -665,11 +668,11 @@ function Get-TargetSspProcesses {
 }
 
 function Wait-ForSspExitBeforePatch {
-    if ((Get-TargetSspProcesses).Count -eq 0) {
+    if (@(Get-TargetSspProcesses).Count -eq 0) {
         return
     }
     $script:RestartSspAfterDeployment = $true
-    while ((Get-TargetSspProcesses).Count -gt 0) {
+    while (@(Get-TargetSspProcesses).Count -gt 0) {
         Write-Host ''
         Write-Host '检测到 SSP 正在运行。运行中覆盖 YAYA 辞书可能触发 last_work_able_dic 回滚。' -ForegroundColor Yellow
         Write-Host '请先从 SSP 菜单正常退出；脚本不会强制终止 SSP。'
@@ -682,7 +685,7 @@ function Wait-ForSspExitBeforePatch {
 }
 
 function Restart-SspIfNeeded {
-    if (-not $script:RestartSspAfterDeployment -or (Get-TargetSspProcesses).Count -gt 0) {
+    if (-not $script:RestartSspAfterDeployment -or @(Get-TargetSspProcesses).Count -gt 0) {
         return
     }
     $taskName = "Hermes_SSP_Restart_$PID"
@@ -693,10 +696,10 @@ function Restart-SspIfNeeded {
         $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
         Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Settings $settings -Force | Out-Null
         Start-ScheduledTask -TaskName $taskName
-        for ($attempt = 0; $attempt -lt 10 -and (Get-TargetSspProcesses).Count -eq 0; $attempt++) {
+        for ($attempt = 0; $attempt -lt 10 -and @(Get-TargetSspProcesses).Count -eq 0; $attempt++) {
             Start-Sleep -Milliseconds 500
         }
-        if ((Get-TargetSspProcesses).Count -eq 0) {
+        if (@(Get-TargetSspProcesses).Count -eq 0) {
             throw '计划任务已启动，但 5 秒内未检测到 ssp.exe。'
         }
         Write-Host '已在普通用户会话中重新启动 SSP。' -ForegroundColor Green

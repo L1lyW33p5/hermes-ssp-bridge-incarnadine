@@ -442,12 +442,11 @@ def _set_watcher_control(data: dict[str, Any]) -> dict[str, Any]:
         return {"ok": False, **state, "path": str(WATCHER_CONTROL_FILE), "message": str(exc)}
 
 
-GATEWAY_PROFILE_FILES = ["soul.md", "memory.md", "user.md", "config.yaml"]
+GATEWAY_PROFILE_FILES = ["soul.md", "memory.md", "user.md"]
 GATEWAY_PROFILE_FILE_PATHS = {
     "soul.md": Path("soul.md"),
     "memory.md": Path("memories") / "MEMORY.md",
     "user.md": Path("memories") / "USER.md",
-    "config.yaml": Path("config.yaml"),
 }
 
 
@@ -1716,7 +1715,6 @@ INDEX_HTML = r"""<!doctype html>
             <button class="secondary active" type="button" data-file="soul.md">soul.md</button>
             <button class="secondary" type="button" data-file="memory.md">MEMORY.md</button>
             <button class="secondary" type="button" data-file="user.md">USER.md</button>
-            <button class="secondary" type="button" data-file="config.yaml">config.yaml</button>
           </div>
           <textarea class="gateway-editor" id="gatewayEditor" spellcheck="false" disabled></textarea>
           <div class="gateway-actions">
@@ -1811,8 +1809,14 @@ INDEX_HTML = r"""<!doctype html>
       intimacy: "intimacy (好感度)"
     };
     const kikkaIconSources = {
-      kikkamood: ["data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d98b3f' stroke='%235b3218' stroke-width='1.5' d='M7 4c4-3 10 0 10 5 0 3-2 5-5 6l-2 5H5l2-6c-4-2-4-7 0-10Z'/%3E%3Cpath fill='%23f5d6a0' d='M6 5c3-2 7-1 8 2-3-1-5 0-7 2-2 0-3-2-1-4Z'/%3E%3C/svg%3E"],
-      intimacy: ["data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e84a5f' stroke='%238f1d2c' stroke-width='1.5' d='M12 21S3 15.5 3 8.8C3 4.2 8.6 2.4 12 6c3.4-3.6 9-1.8 9 2.8C21 15.5 12 21 12 21Z'/%3E%3C/svg%3E"]
+      kikkamood: [
+        "https://minecraft.wiki/images/Hunger.svg?5c3ee",
+        "https://zh.minecraft.wiki/images/Hunger.svg?5c3ee"
+      ],
+      intimacy: [
+        "https://minecraft.wiki/images/EnvSprite_heart.png",
+        "https://zh.minecraft.wiki/images/EnvSprite_heart.png"
+      ]
     };
     const kikkaIconUrls = {};
     const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "KeyB", "KeyA"];
@@ -2486,7 +2490,7 @@ class Handler(BaseHTTPRequestHandler):
             "base-uri 'none'; frame-ancestors 'none'; form-action 'self'; "
             "connect-src 'self'; style-src 'self' 'unsafe-inline'; "
             "script-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:",
+            "img-src 'self' data: https://minecraft.wiki https://zh.minecraft.wiki",
         )
 
     @staticmethod

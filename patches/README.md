@@ -26,6 +26,4 @@
 
 ## 许可
 
-本目录不是统一采用 MIT License。Taromati2/YAYA 衍生文件适用上游非商业条款，
-详见 [`taromati2/LICENSE.md`](taromati2/LICENSE.md) 和仓库根目录的
-[`LICENSE.md`](../LICENSE.md)。
+本目录不是统一采用 MIT License。Taromati2/YAYA 衍生文件适用上游非商业条款，详见 [`taromati2/LICENSE.md`](taromati2/LICENSE.md) 和仓库根目录的 [`LICENSE.md`](../LICENSE.md)。

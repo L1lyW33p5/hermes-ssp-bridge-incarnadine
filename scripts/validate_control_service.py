@@ -123,17 +123,20 @@ def validate_gateway_file_backup(module) -> None:
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
-            config_path = root / "config.yaml"
-            config_path.write_text("model: old\n", encoding="utf-8")
+            soul_path = root / "soul.md"
+            soul_path.write_text("old soul\n", encoding="utf-8")
             module._gateway_status = lambda: {"running": False, "home": str(root)}
-            result = module._save_gateway_files({"config.yaml": "model: new\n"})
-            backups = list(root.glob("config.yaml.web-backup.*"))
-            if not result["ok"] or config_path.read_text(encoding="utf-8") != "model: new\n":
-                raise RuntimeError("config.yaml was not saved")
-            if len(backups) != 1 or backups[0].read_text(encoding="utf-8") != "model: old\n":
-                raise RuntimeError("config.yaml backup was not created correctly")
-            if "config.yaml" not in module.GATEWAY_PROFILE_FILES:
-                raise RuntimeError("config.yaml is missing from the profile editor")
+            result = module._save_gateway_files({"soul.md": "new soul\n"})
+            backups = list(root.glob("soul.md.web-backup.*"))
+            if not result["ok"] or soul_path.read_text(encoding="utf-8") != "new soul\n":
+                raise RuntimeError("soul.md was not saved")
+            if len(backups) != 1 or backups[0].read_text(encoding="utf-8") != "old soul\n":
+                raise RuntimeError("soul.md backup was not created correctly")
+            if "config.yaml" in module.GATEWAY_PROFILE_FILES or "config.yaml" in module.GATEWAY_PROFILE_FILE_PATHS:
+                raise RuntimeError("config.yaml is still exposed by the profile editor")
+            rejected = module._save_gateway_files({"config.yaml": "model: blocked\n"})
+            if rejected["ok"] or (root / "config.yaml").exists():
+                raise RuntimeError("config.yaml writes are still accepted by the profile editor API")
     finally:
         module._gateway_status = original_status
 
