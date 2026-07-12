@@ -55,7 +55,7 @@ Then run `自动部署脚本.bat` from the root. After the environment checks pa
 
 3. Configures the kikka profile's Hermes API Server on `127.0.0.1:8642`, generating a strong local key when needed. It then installs the kikka gateway and waits for its health check.
 
-4. Installs the integration patches by copying files below `patches/taromati2/` to the detected `ghost/Taromati2` using their relative paths.
+4. Installs the ghost-side patches by copying files below `patches/taromati2/` to the detected `ghost/Taromati2` using their relative paths.
 
 5. SHA-256-verifies every copied file. The completed menu is shown after all checks pass.
 

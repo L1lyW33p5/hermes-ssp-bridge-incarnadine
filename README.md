@@ -55,7 +55,7 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 
 3. 为 kikka profile 配置仅监听 `127.0.0.1:8642` 的 Hermes API Server；缺少强密钥时会在本机生成随机密钥。随后安装 kikka gateway，并等待健康检查通过。
 
-4. 安装集成补丁，将 `patches/taromati2/` 中的文件按相对路径覆盖到检测到的 `ghost/Taromati2`。
+4. 安装 ghost 侧补丁，将 `patches/taromati2/` 中的文件按相对路径覆盖到检测到的 `ghost/Taromati2`。
 
 5. 对每个已复制文件执行 SHA-256 校验；校验全部通过后将显示部署完成菜单。
 
