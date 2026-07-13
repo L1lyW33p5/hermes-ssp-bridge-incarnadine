@@ -68,6 +68,8 @@ Then run `自动部署脚本.bat` from the root. After the environment checks pa
 
 </details>
 
+<br>
+
 After deployment, the same menu can redeploy, manage logon startup for the Bridge/gateway/web panel, open the official Hermes model wizard (which creates `config.yaml` when it is missing), or restore patch/runtime/SOUL backups created by the scripts.
 
 ## Web control panel

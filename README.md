@@ -68,6 +68,8 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 
 </details>
 
+<br>
+
 部署完成后可在同一菜单中重新部署、管理 Bridge/gateway/web 控制面板的登录自启动、进入 Hermes 官方模型向导配置 Provider 和模型（缺少 `config.yaml` 时由向导创建），或恢复脚本创建的 patch/runtime/SOUL 备份。
 
 ## Web 控制面板
