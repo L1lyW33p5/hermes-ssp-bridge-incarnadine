@@ -47,7 +47,12 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 
 Wait for the command to finish.
 
-Then run `自动部署脚本.bat` from the root. After the environment checks pass, select **Start Deployment**. The script:
+Then run `自动部署脚本.bat` from the root. After the environment checks pass, select **Start Deployment**.
+
+<details>
+<summary>The script will begin the deployment process.</summary>
+
+<br>
 
 1. Selects the default pip index or the Tsinghua TUNA PyPI mirror based on the public IP location, then installs `requirements.txt`.
 
@@ -60,6 +65,8 @@ Then run `自动部署脚本.bat` from the root. After the environment checks pa
 5. SHA-256-verifies every copied file. The completed menu is shown after all checks pass.
 
 6. Creates or updates the private local `.env` path settings while preserving unrelated existing settings.
+
+</details>
 
 After deployment, the same menu can redeploy, manage logon startup for the Bridge/gateway/web panel, open the official Hermes model wizard (which creates `config.yaml` when it is missing), or restore patch/runtime/SOUL backups created by the scripts.
 

@@ -47,7 +47,12 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 
 然后等待命令执行完毕。
 
-接着运行根目录中的 `自动部署脚本.bat`。环境检测通过后选择“开始部署”，脚本会：
+接着运行根目录中的 `自动部署脚本.bat`。环境检测通过后选择“开始部署”，
+
+<details>
+<summary>脚本将进入部署流程。</summary>
+
+<br>
 
 1. 根据公网 IP 所在地区选择 pip 默认源或清华大学 TUNA PyPI 镜像，并从 `requirements.txt` 安装依赖。
 
@@ -60,6 +65,8 @@ cmd /c 'curl.exe -fL "https://github.com/L1lyW33p5/hermes-ssp-bridge-incarnadine
 5. 对每个已复制文件执行 SHA-256 校验；校验全部通过后将显示部署完成菜单。
 
 6. 自动生成或更新本机私有的 `.env` 路径配置，同时保留其中已有的其他配置。
+
+</details>
 
 部署完成后可在同一菜单中重新部署、管理 Bridge/gateway/web 控制面板的登录自启动、进入 Hermes 官方模型向导配置 Provider 和模型（缺少 `config.yaml` 时由向导创建），或恢复脚本创建的 patch/runtime/SOUL 备份。
 
